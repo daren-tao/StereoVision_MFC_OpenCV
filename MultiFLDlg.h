@@ -49,6 +49,7 @@ public:
 public:
 	void detectAndShowCircles(cv::Mat& frame0, cv::Mat& frame1);
 
+	std::vector<cv::Point2f>	detectChessBoardCorners(cv::Mat& frame, cv::Size boadSize);
 
 public:
 	afx_msg void OnBnClickedBtnOpenCam();
