@@ -5,6 +5,9 @@
 #pragma once
 
 
+#include "StereoCalibration.h"
+
+
 // CMultiFLDlg ¶Ô»°¿ò;
 class CMultiFLDlg : public CDialogEx
 {
