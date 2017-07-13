@@ -33,27 +33,30 @@ protected:
 public:
 	bool m_bStopVideo;
 
-	cv::VideoCapture m_camera_right;
-	CRect	m_rect_right;
-	CDC*	m_pCdc_right;
-	HDC		m_hDc_right;
-	CWnd*	m_pWnd_right;
+	cv::VideoCapture m_camera1;
+	CRect	m_rect1;
+	CDC*	m_pCdc1;
+	HDC		m_hDc1;
+	CWnd*	m_pWnd1;
+	
+	cv::VideoCapture m_camera2;
+	CRect	m_rect2;
+	CDC*	m_pCdc2;
+	HDC		m_hDc2;
+	CWnd*	m_pWnd2;
 
-	cv::VideoCapture m_camera_left;
-	CRect	m_rect_left;
-	CDC*	m_pCdc_left;
-	HDC		m_hDc_left;
-	CWnd*	m_pWnd_left;
+	cv::Mat m_frame1;	//	left;
+	cv::Mat m_frame2;	//	right;
 
+	StereoCalibration m_stereoCalibration;
 
 public:
-	void detectAndShowCircles(cv::Mat& frame0, cv::Mat& frame1);
-
-	std::vector<cv::Point2f>	detectChessBoardCorners(cv::Mat& frame, cv::Size boadSize);
+	void detectAndShowCircles(cv::Mat& frame1, cv::Mat& frame2);
 
 public:
 	afx_msg void OnBnClickedBtnOpenCam();
 	afx_msg void OnBnClickedBtnStopVideo();
 
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
+	afx_msg void OnBnClickedBtnStereoCalib();
 };

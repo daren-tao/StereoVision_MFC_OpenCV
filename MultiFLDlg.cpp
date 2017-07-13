@@ -7,6 +7,8 @@
 #include "MultiFLDlg.h"
 #include "afxdialogex.h"
 
+#include "StereoCalibration.h"
+
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
@@ -63,6 +65,7 @@ BEGIN_MESSAGE_MAP(CMultiFLDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BTN_OPEN_CAM, &CMultiFLDlg::OnBnClickedBtnOpenCam)
 	ON_BN_CLICKED(IDC_BTN_STOP_VIDEO, &CMultiFLDlg::OnBnClickedBtnStopVideo)
 	ON_WM_TIMER()
+	ON_BN_CLICKED(IDC_BTN_STEREO_CALIB, &CMultiFLDlg::OnBnClickedBtnStereoCalib)
 END_MESSAGE_MAP()
 
 
@@ -99,16 +102,16 @@ BOOL CMultiFLDlg::OnInitDialog()
 
 	// TODO: 在此添加额外的初始化代码;
 	m_bStopVideo = false;
-	
-	m_pWnd_right = GetDlgItem(IDC_STATIC_RIGHT_VIDEO);
-	m_pCdc_right = m_pWnd_right->GetDC();
-	m_hDc_right  = m_pCdc_right->GetSafeHdc();
-	m_pWnd_right->GetClientRect(&m_rect_right);
 
-	m_pWnd_left = GetDlgItem(IDC_STATIC_LEFT_VIDEO);
-	m_pCdc_left = m_pWnd_left->GetDC();
-	m_hDc_left = m_pCdc_left->GetSafeHdc();
-	m_pWnd_left->GetClientRect(&m_rect_left);
+	m_pWnd2 = GetDlgItem(IDC_STATIC_RIGHT_VIDEO);
+	m_pCdc2 = m_pWnd2->GetDC();
+	m_hDc2  = m_pCdc2->GetSafeHdc();
+	m_pWnd2->GetClientRect(&m_rect2);
+
+	m_pWnd1 = GetDlgItem(IDC_STATIC_LEFT_VIDEO);
+	m_pCdc1 = m_pWnd1->GetDC();
+	m_hDc1 = m_pCdc1->GetSafeHdc();
+	m_pWnd1->GetClientRect(&m_rect1);
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE;
 }
@@ -166,29 +169,15 @@ HCURSOR CMultiFLDlg::OnQueryDragIcon()
 void CMultiFLDlg::OnBnClickedBtnOpenCam()
 {
 	// TODO: 在此添加控件通知处理程序代码;
-	m_camera_left.open(0);
-	m_camera_right.open(1);
-	if(!m_camera_left.isOpened() && !m_camera_right.isOpened())	
+	m_camera1.open(0);
+	m_camera2.open(1);
+	if(!m_camera1.isOpened() && !m_camera2.isOpened())	
 	{
 		AfxMessageBox(" open cameras failed !");
 		return;
 	}
-	CvvImage CvvImage_left, CvvImage_right;
-	cv::Mat tmpFrame_left;
-	cv::Mat tmpFrame_right;
-	m_camera_left >> tmpFrame_left;
-	m_camera_right >> tmpFrame_right;
 
-	IplImage frame_left = tmpFrame_left;
-	IplImage frame_right = tmpFrame_right;
-
-	CvvImage_left.CopyOf(&frame_left,frame_left.nChannels);
-	CvvImage_left.DrawToHDC(m_hDc_left,&m_rect_left);
-
-	CvvImage_right.CopyOf(&frame_right,frame_right.nChannels);
-	CvvImage_right.DrawToHDC(m_hDc_right,&m_rect_right);
-
-	SetTimer(1, 20, NULL);
+	SetTimer(0, 33, NULL);
 }
 
 
@@ -196,16 +185,16 @@ void CMultiFLDlg::OnBnClickedBtnStopVideo()
 {
 	// TODO: 在此添加控件通知处理程序代码;
 	m_bStopVideo = true;
-	KillTimer(1);
+	KillTimer(0);
 }
 
 
-void CMultiFLDlg::detectAndShowCircles(cv::Mat& frame0, cv::Mat& frame1)
+void CMultiFLDlg::detectAndShowCircles(cv::Mat& frame1, cv::Mat& frame2)
 {
 	std::vector<cv::Vec3f> circles_left, circles_right;
 	cv::Mat gray_left, gray_right;
-	cv::cvtColor(frame0, gray_left, cv::COLOR_RGB2GRAY);
-	cv::cvtColor(frame1, gray_right, cv::COLOR_RGB2GRAY);
+	cv::cvtColor(frame1, gray_left, cv::COLOR_RGB2GRAY);
+	cv::cvtColor(frame2, gray_right, cv::COLOR_RGB2GRAY);
 	cv::HoughCircles(gray_left, circles_left, CV_HOUGH_GRADIENT, 1, gray_left.rows / 2);
 	cv::HoughCircles(gray_right, circles_right, CV_HOUGH_GRADIENT, 1, gray_right.rows / 2);
 
@@ -213,13 +202,13 @@ void CMultiFLDlg::detectAndShowCircles(cv::Mat& frame0, cv::Mat& frame1)
 	{
 		cv::Point centre(cvRound(circles_left[i][0]), cvRound(circles_left[i][1]));
 		int radius = cvRound(circles_left[i][2]);
-		cv::circle(frame0, centre, radius, cv::Scalar(0, 0, 255), 3);
+		cv::circle(frame1, centre, radius, cv::Scalar(0, 0, 255), 3);
 	}
 	for (int i=0;i<circles_right.size();i++)
 	{
 		cv::Point centre(cvRound(circles_right[i][0]), cvRound(circles_right[i][1]));
 		int radius = cvRound(circles_right[i][2]);
-		cv::circle(frame1, centre, radius, cv::Scalar(0, 0, 255), 3);
+		cv::circle(frame2, centre, radius, cv::Scalar(0, 0, 255), 3);
 	}
 }
 
@@ -227,34 +216,33 @@ void CMultiFLDlg::detectAndShowCircles(cv::Mat& frame0, cv::Mat& frame1)
 void CMultiFLDlg::OnTimer(UINT_PTR nIDEvent)
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值;
-	CvvImage CvvImage_left, CvvImage_right;
-	cv::Mat tmpFrame_left, tmpFrame_right;
-	m_camera_left >> tmpFrame_left;
-	m_camera_right >> tmpFrame_right;
+	CvvImage CvvImage1, CvvImage2;
+	cv::Mat tmpFrame1, tmpFrame2;
+	m_camera1 >> tmpFrame1;
+	m_camera2 >> tmpFrame2;
 
-	detectAndShowCircles(tmpFrame_left, tmpFrame_right);
+	IplImage frame1 = tmpFrame1;
+	IplImage frame2 = tmpFrame2;
 
-	IplImage frame_left = tmpFrame_left;
-	IplImage frame_right = tmpFrame_right;
+	switch(nIDEvent)
+	{
+	case 0:
+		CvvImage1.CopyOf(&frame1,frame1.nChannels);
+		CvvImage1.DrawToHDC(m_hDc1,&m_rect1);
 
-	CvvImage_left.CopyOf(&frame_left,frame_left.nChannels);
-	CvvImage_left.DrawToHDC(m_hDc_left,&m_rect_left);
+		CvvImage2.CopyOf(&frame2,frame2.nChannels);
+		CvvImage2.DrawToHDC(m_hDc2,&m_rect2);
 
-	CvvImage_right.CopyOf(&frame_right,frame_right.nChannels);
-	CvvImage_right.DrawToHDC(m_hDc_right,&m_rect_right);
+		break;
 
+	case 1:
+		break;
+	}
 	CDialogEx::OnTimer(nIDEvent);
 }
 
 
-std::vector<cv::Point2f> CMultiFLDlg::detectChessBoardCorners(cv::Mat& frame, cv::Size boadSize)
+void CMultiFLDlg::OnBnClickedBtnStereoCalib()
 {
-	std::vector<cv::Point2f> corners;
-	
-	bool cornersfound = cv::findChessboardCorners(frame, boadSize, corners);
-	if(cornersfound)
-		cv::cornerSubPix(frame, corners, cv::Size(11, 11), cv::Size(-1, -1), 
-		cv::TermCriteria(CV_TERMCRIT_ITER + CV_TERMCRIT_EPS, 30, 0.01));
-
-	return corners;
+	// TODO: 在此添加控件通知处理程序代码;
 }
