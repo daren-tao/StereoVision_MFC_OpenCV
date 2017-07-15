@@ -247,10 +247,6 @@ void CMultiFLDlg::OnBnClickedBtnStereoCalib()
 	// TODO: 在此添加控件通知处理程序代码;
 	cv::Mat chessBoard = cv::imread("chessboard.jpg");
 
-	std::vector<cv::Point2f> corners = m_stereoCalibration.detectChessBoardCorners(chessBoard, cv::Size(6, 4));
-
-	if (corners.size() == 24)
-		cv::drawChessboardCorners(chessBoard, cv::Size(6, 4), corners, true);
 
 	IplImage frame = chessBoard;
 	CvvImage cvvImage;
