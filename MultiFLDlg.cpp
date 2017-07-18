@@ -195,8 +195,8 @@ void CMultiFLDlg::detectAndShowCircles(cv::Mat& frame1, cv::Mat& frame2)
 	cv::Mat gray_left, gray_right;
 	cv::cvtColor(frame1, gray_left, cv::COLOR_RGB2GRAY);
 	cv::cvtColor(frame2, gray_right, cv::COLOR_RGB2GRAY);
-	cv::HoughCircles(gray_left, circles_left, CV_HOUGH_GRADIENT, 1, gray_left.rows / 2);
-	cv::HoughCircles(gray_right, circles_right, CV_HOUGH_GRADIENT, 1, gray_right.rows / 2);
+	cv::HoughCircles(gray_left, circles_left, CV_HOUGH_GRADIENT, 1, gray_left.rows / 20);
+	cv::HoughCircles(gray_right, circles_right, CV_HOUGH_GRADIENT, 1, gray_right.rows / 20);
 
 	for (int i=0;i<circles_left.size();i++)
 	{
@@ -220,6 +220,8 @@ void CMultiFLDlg::OnTimer(UINT_PTR nIDEvent)
 	cv::Mat tmpFrame1, tmpFrame2;
 	m_camera1 >> tmpFrame1;
 	m_camera2 >> tmpFrame2;
+
+	detectAndShowCircles(tmpFrame1, tmpFrame2);
 
 	IplImage frame1 = tmpFrame1;
 	IplImage frame2 = tmpFrame2;
