@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <sstream>
 
 #include "StereoCalibration.h"
 
@@ -51,7 +52,15 @@ public:
 	cv::Mat m_frame1;	//	left;
 	cv::Mat m_frame2;	//	right;
 
+	unsigned int m_iSaved;
+	unsigned int m_iChessBoardFrame;
+	bool m_bStereoCalibed;
+
 	StereoCalibration m_stereoCalibration;
+
+	std::vector<std::vector<cv::Point2f>> m_vCorners1;
+	std::vector<std::vector<cv::Point2f>> m_vCorners2;
+	cv::Mat m_mRemap1X, m_mRemap1Y, m_mRemap2X, m_mRemap2Y, m_mQ;
 
 public:
 	void detectAndShowCircles(cv::Mat& frame1, cv::Mat& frame2);

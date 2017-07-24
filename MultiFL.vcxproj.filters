@@ -45,6 +45,9 @@
     <ClInclude Include="StereoCalibration.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="TStereoCalibration.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MultiFL.cpp">

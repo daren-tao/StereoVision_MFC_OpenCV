@@ -113,6 +113,11 @@ BOOL CMultiFLDlg::OnInitDialog()
 	m_hDc1 = m_pCdc1->GetSafeHdc();
 	m_pWnd1->GetClientRect(&m_rect1);
 
+	m_iSaved = 0;
+	m_iChessBoardFrame = 0;
+
+	m_bStereoCalibed = false;
+
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE;
 }
 
@@ -221,14 +226,26 @@ void CMultiFLDlg::OnTimer(UINT_PTR nIDEvent)
 	m_camera1 >> tmpFrame1;
 	m_camera2 >> tmpFrame2;
 
-	detectAndShowCircles(tmpFrame1, tmpFrame2);
+	IplImage frame1, frame2;
 
-	IplImage frame1 = tmpFrame1;
-	IplImage frame2 = tmpFrame2;
+	std::vector<cv::Point2f> corner1, corner2;
 
+	std::stringstream filename1, filename2;
 	switch(nIDEvent)
 	{
 	case 0:
+		KillTimer(0);
+		SetTimer(0, 33, NULL);
+
+		if(m_bStereoCalibed)
+		{
+			cv::remap(tmpFrame1, tmpFrame1, m_mRemap1X, m_mRemap1Y, CV_INTER_LINEAR);
+			cv::remap(tmpFrame2, tmpFrame2, m_mRemap2X, m_mRemap2Y, CV_INTER_LINEAR);
+		}
+
+		frame1 = tmpFrame1;
+		frame2 = tmpFrame2;
+
 		CvvImage1.CopyOf(&frame1,frame1.nChannels);
 		CvvImage1.DrawToHDC(m_hDc1,&m_rect1);
 
@@ -238,6 +255,57 @@ void CMultiFLDlg::OnTimer(UINT_PTR nIDEvent)
 		break;
 
 	case 1:
+		//	filename1 << "image/left_" << m_iSaved << ".jpg";
+		//	filename2 << "image/right_" << m_iSaved << ".jpg";
+		//	cv::imwrite(filename1.str(), tmpFrame1);
+		//	cv::imwrite(filename2.str(), tmpFrame2);
+		//
+		//	m_iSaved++;
+		if(m_iChessBoardFrame < 20)
+		{
+			KillTimer(0);
+
+			corner1 = detectCorners(tmpFrame1, cv::Size(6, 4));
+			if(corner1.size() > 0)
+				corner2 = detectCorners(tmpFrame2, cv::Size(6, 4));
+			if(corner1.size() > 0)
+				cv::drawChessboardCorners(tmpFrame1, cv::Size(6, 4), corner1, true);
+			if(corner2.size() > 0)
+				cv::drawChessboardCorners(tmpFrame2, cv::Size(6, 4), corner2, true);
+
+			cv::bitwise_not(tmpFrame1, tmpFrame1);
+			cv::bitwise_not(tmpFrame2, tmpFrame2);
+
+			if (corner1.size() == corner2.size())
+			{
+				m_vCorners1.push_back(corner1);
+				m_vCorners2.push_back(corner2);
+			}
+
+			frame1 = tmpFrame1;
+			frame2 = tmpFrame2;
+
+			CvvImage1.CopyOf(&frame1,frame1.nChannels);
+			CvvImage1.DrawToHDC(m_hDc1,&m_rect1);
+
+			CvvImage2.CopyOf(&frame2,frame2.nChannels);
+			CvvImage2.DrawToHDC(m_hDc2,&m_rect2);
+
+			SetTimer(0, 500, NULL);
+
+			m_iChessBoardFrame++;
+		}
+		else
+		{
+			KillTimer(0);
+			MessageBox("start calibrating ...", "notice", MB_OK);
+			calibrateStereoVision(m_vCorners1, m_vCorners2, cv::Size(6, 4), 35.0f, cv::Size(640, 480),
+				m_mRemap1X, m_mRemap1Y, m_mRemap2X, m_mRemap2Y, m_mQ);
+			m_bStereoCalibed = true;
+			KillTimer(1);
+			MessageBox("stereo calibration finished.", "notice", MB_OK);
+			SetTimer(0, 33, NULL);
+		}
 		break;
 	}
 	CDialogEx::OnTimer(nIDEvent);
@@ -247,11 +315,20 @@ void CMultiFLDlg::OnTimer(UINT_PTR nIDEvent)
 void CMultiFLDlg::OnBnClickedBtnStereoCalib()
 {
 	// TODO: 在此添加控件通知处理程序代码;
-	cv::Mat chessBoard = cv::imread("chessboard.jpg");
+	//cv::Mat frame = cv::imread("chessboard.jpg");
 
+	//cv::Mat frame0;
+	//cv::bitwise_not(frame, frame0);
 
-	IplImage frame = chessBoard;
-	CvvImage cvvImage;
-	cvvImage.CopyOf(&frame,frame.nChannels);
-	cvvImage.DrawToHDC(m_hDc1,&m_rect1);
+	//IplImage tmpFrame = frame;
+
+	//CvvImage cvvImage;
+	//cvvImage.CopyOf(&tmpFrame,tmpFrame.nChannels);
+	//cvvImage.DrawToHDC(m_hDc1,&m_rect1);
+
+	//tmpFrame = frame0;
+	//cvvImage.CopyOf(&tmpFrame,tmpFrame.nChannels);
+	//cvvImage.DrawToHDC(m_hDc2,&m_rect2);
+
+	SetTimer(1, 3000, NULL);
 }

@@ -44,6 +44,8 @@
 
 #include <vector>
 
+#include "TStereoCalibration.h"
+
 
 
 

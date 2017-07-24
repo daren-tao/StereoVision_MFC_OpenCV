@@ -108,6 +108,7 @@
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="StereoCalibration.h" />
     <ClInclude Include="targetver.h" />
+    <ClInclude Include="TStereoCalibration.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CvvImage.cpp" />
