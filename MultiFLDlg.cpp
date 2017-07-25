@@ -313,6 +313,17 @@ void CMultiFLDlg::OnTimer(UINT_PTR nIDEvent)
 			MessageBox("start calibrating ...", "notice", MB_OK);
 			calibrateStereoVision(m_vCorners1, m_vCorners2, cv::Size(6, 4), 35.0f, cv::Size(640, 480),
 				m_mRemap1X, m_mRemap1Y, m_mRemap2X, m_mRemap2Y, m_mQ);
+
+			if(m_fsCalib.open("stereo_calib.xml", cv::FileStorage::WRITE))
+			{
+				m_fsCalib << "remap1X" << m_mRemap1X;
+				m_fsCalib << "remap1Y" << m_mRemap1Y;
+				m_fsCalib << "remap2X" << m_mRemap2X;
+				m_fsCalib << "remap2Y" << m_mRemap2Y;
+				m_fsCalib << "QMatrix" << m_mQ;
+			}
+			m_fsCalib.release();
+
 			m_bStereoCalibed = true;
 			MessageBox("stereo calibration finished.", "notice", MB_OK);
 			SetTimer(0, 33, NULL);
