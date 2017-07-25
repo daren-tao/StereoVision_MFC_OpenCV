@@ -118,6 +118,18 @@ BOOL CMultiFLDlg::OnInitDialog()
 
 	m_bStereoCalibed = false;
 
+#if 0
+	cv::FileStorage fp("calib_paras.xml", cv::FileStorage::READ);
+	if(fp.isOpened())
+	{
+		fp["QMatrix"] >> m_mQ;
+		fp["remapX1"] >> m_mRemap1X;
+		fp["remapY1"] >> m_mRemap1Y;
+		fp["remapX2"] >> m_mRemap2X;
+		fp["remapY2"] >> m_mRemap2Y;
+	}
+#endif
+
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE;
 }
 
@@ -174,8 +186,8 @@ HCURSOR CMultiFLDlg::OnQueryDragIcon()
 void CMultiFLDlg::OnBnClickedBtnOpenCam()
 {
 	// TODO: 在此添加控件通知处理程序代码;
-	m_camera1.open(0);
-	m_camera2.open(1);
+	m_camera1.open(1);
+	m_camera2.open(0);
 	if(!m_camera1.isOpened() && !m_camera2.isOpened())	
 	{
 		AfxMessageBox(" open cameras failed !");
@@ -227,9 +239,7 @@ void CMultiFLDlg::OnTimer(UINT_PTR nIDEvent)
 	m_camera2 >> tmpFrame2;
 
 	IplImage frame1, frame2;
-
 	std::vector<cv::Point2f> corner1, corner2;
-
 	std::stringstream filename1, filename2;
 	switch(nIDEvent)
 	{
@@ -241,7 +251,14 @@ void CMultiFLDlg::OnTimer(UINT_PTR nIDEvent)
 		{
 			cv::remap(tmpFrame1, tmpFrame1, m_mRemap1X, m_mRemap1Y, CV_INTER_LINEAR);
 			cv::remap(tmpFrame2, tmpFrame2, m_mRemap2X, m_mRemap2Y, CV_INTER_LINEAR);
+
+			for(int i = 50; i < tmpFrame1.rows; i += 50)
+			{
+				cv::line(tmpFrame1, cv::Point(0, i), cv::Point(tmpFrame1.cols, i), cv::Scalar(0, 0, 255));
+				cv::line(tmpFrame2, cv::Point(0, i), cv::Point(tmpFrame2.cols, i), cv::Scalar(0, 0, 255));
+			}
 		}
+		
 
 		frame1 = tmpFrame1;
 		frame2 = tmpFrame2;
@@ -255,12 +272,6 @@ void CMultiFLDlg::OnTimer(UINT_PTR nIDEvent)
 		break;
 
 	case 1:
-		//	filename1 << "image/left_" << m_iSaved << ".jpg";
-		//	filename2 << "image/right_" << m_iSaved << ".jpg";
-		//	cv::imwrite(filename1.str(), tmpFrame1);
-		//	cv::imwrite(filename2.str(), tmpFrame2);
-		//
-		//	m_iSaved++;
 		if(m_iChessBoardFrame < 20)
 		{
 			KillTimer(0);
@@ -298,11 +309,11 @@ void CMultiFLDlg::OnTimer(UINT_PTR nIDEvent)
 		else
 		{
 			KillTimer(0);
+			KillTimer(1);
 			MessageBox("start calibrating ...", "notice", MB_OK);
 			calibrateStereoVision(m_vCorners1, m_vCorners2, cv::Size(6, 4), 35.0f, cv::Size(640, 480),
 				m_mRemap1X, m_mRemap1Y, m_mRemap2X, m_mRemap2Y, m_mQ);
 			m_bStereoCalibed = true;
-			KillTimer(1);
 			MessageBox("stereo calibration finished.", "notice", MB_OK);
 			SetTimer(0, 33, NULL);
 		}

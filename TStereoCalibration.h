@@ -12,8 +12,8 @@
 static std::vector<cv::Point2f> detectCorners(cv::Mat& frame, cv::Size boardSize);
 static std::vector<cv::Point2f> detectCorners(std::string filename, cv::Size boardSize);
 static bool calibrateStereoVision(
-	std::vector<std::vector<cv::Point2f>>& corners1, 
-	std::vector<std::vector<cv::Point2f>>& corners2,
+	std::vector<std::vector<cv::Point2f>>& vcorners1, 
+	std::vector<std::vector<cv::Point2f>>& vcorners2,
 	cv::Size boardSize, float squareSize, cv::Size imageSize,
 	cv::Mat& remap1X, cv::Mat& remap1Y, cv::Mat& remap2X, cv::Mat& remap2Y, cv::Mat& Q
 	);
@@ -43,15 +43,15 @@ static std::vector<cv::Point2f> detectCorners(std::string filename, cv::Size boa
 }
 
 static bool calibrateStereoVision(
-	std::vector<std::vector<cv::Point2f>>& corners1, 
-	std::vector<std::vector<cv::Point2f>>& corners2,
+	std::vector<std::vector<cv::Point2f>>& vcorners1, 
+	std::vector<std::vector<cv::Point2f>>& vcorners2,
 	cv::Size boardSize, float squareSize, cv::Size imageSize,
 	cv::Mat& remap1X, cv::Mat& remap1Y, cv::Mat& remap2X, cv::Mat& remap2Y, cv::Mat& Q
 	)
 {
 	int frame_n = 0;
-	if(corners1.size() == corners2.size())
-		frame_n = corners1.size();
+	if(vcorners1.size() == vcorners2.size())
+		frame_n = vcorners1.size();
 	else
 		return false;
 
@@ -68,7 +68,15 @@ static bool calibrateStereoVision(
 	cameraMatrix[0] = cv::Mat::eye(3, 3, CV_64F);
 	cameraMatrix[1] = cv::Mat::eye(3, 3, CV_64F);
 	cv::Mat R, T, E, F;
-	double rms = cv::stereoCalibrate(objPoints, corners1, corners2,
+
+	std::vector<cv::Mat> rotations2, rotations1;
+	std::vector<cv::Mat> translations2, translations1;
+	cv::calibrateCamera(objPoints, vcorners1, imageSize, cameraMatrix[0], distCoeffs[0],
+		rotations1, translations1, 142);
+	cv::calibrateCamera(objPoints, vcorners2, imageSize, cameraMatrix[1], distCoeffs[1],
+		rotations2, translations2, 142);
+
+	double rms = cv::stereoCalibrate(objPoints, vcorners1, vcorners2,
 		cameraMatrix[0], distCoeffs[0],
 		cameraMatrix[1], distCoeffs[1],
 		imageSize, R, T, E, F,
