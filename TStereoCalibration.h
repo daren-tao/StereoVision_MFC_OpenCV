@@ -81,11 +81,12 @@ static bool calibrateStereoVision(
 		cameraMatrix[1], distCoeffs[1],
 		imageSize, R, T, E, F,
 		cv::TermCriteria(CV_TERMCRIT_ITER+CV_TERMCRIT_EPS, 100, 1e-5),
-		CV_CALIB_FIX_ASPECT_RATIO +
-		CV_CALIB_ZERO_TANGENT_DIST +
-		CV_CALIB_SAME_FOCAL_LENGTH +
-		CV_CALIB_RATIONAL_MODEL +
-		CV_CALIB_FIX_K3 + CV_CALIB_FIX_K4 + CV_CALIB_FIX_K5);
+	//	CV_CALIB_FIX_ASPECT_RATIO +
+	//	CV_CALIB_ZERO_TANGENT_DIST +
+	//	CV_CALIB_SAME_FOCAL_LENGTH +
+	//	CV_CALIB_RATIONAL_MODEL +
+		519 +
+		cv::CALIB_FIX_K3 + cv::CALIB_FIX_K4 + cv::CALIB_FIX_K5);
 
 	cv::Mat R1, R2, P1, P2;
 	cv::Rect validRoi[2];

@@ -55,6 +55,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>.\libelas;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -102,16 +103,29 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CvvImage.h" />
+    <ClInclude Include="libelas\descriptor.h" />
+    <ClInclude Include="libelas\elas.h" />
+    <ClInclude Include="libelas\elas_filter.h" />
+    <ClInclude Include="libelas\image.h" />
+    <ClInclude Include="libelas\matrix.h" />
+    <ClInclude Include="libelas\timer.h" />
+    <ClInclude Include="libelas\triangle.h" />
     <ClInclude Include="MultiFL.h" />
     <ClInclude Include="MultiFLDlg.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="StereoCalibration.h" />
+    <ClInclude Include="T3DReconstruction.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="TStereoCalibration.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CvvImage.cpp" />
+    <ClCompile Include="libelas\descriptor.cpp" />
+    <ClCompile Include="libelas\elas.cpp" />
+    <ClCompile Include="libelas\elas_filter.cpp" />
+    <ClCompile Include="libelas\matrix.cpp" />
+    <ClCompile Include="libelas\triangle.cpp" />
     <ClCompile Include="MultiFL.cpp" />
     <ClCompile Include="MultiFLDlg.cpp" />
     <ClCompile Include="stdafx.cpp">

@@ -13,6 +13,12 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="头文件\libelas">
+      <UniqueIdentifier>{04865bef-7963-4d63-aae8-6c2c35920afb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\libelas">
+      <UniqueIdentifier>{056b9248-68de-4b50-b9b9-933642b73938}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="ReadMe.txt" />
@@ -48,6 +54,30 @@
     <ClInclude Include="TStereoCalibration.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="libelas\descriptor.h">
+      <Filter>头文件\libelas</Filter>
+    </ClInclude>
+    <ClInclude Include="libelas\elas.h">
+      <Filter>头文件\libelas</Filter>
+    </ClInclude>
+    <ClInclude Include="libelas\image.h">
+      <Filter>头文件\libelas</Filter>
+    </ClInclude>
+    <ClInclude Include="libelas\matrix.h">
+      <Filter>头文件\libelas</Filter>
+    </ClInclude>
+    <ClInclude Include="libelas\timer.h">
+      <Filter>头文件\libelas</Filter>
+    </ClInclude>
+    <ClInclude Include="libelas\triangle.h">
+      <Filter>头文件\libelas</Filter>
+    </ClInclude>
+    <ClInclude Include="T3DReconstruction.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="libelas\elas_filter.h">
+      <Filter>头文件\libelas</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MultiFL.cpp">
@@ -64,6 +94,21 @@
     </ClCompile>
     <ClCompile Include="StereoCalibration.cpp">
       <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="libelas\descriptor.cpp">
+      <Filter>源文件\libelas</Filter>
+    </ClCompile>
+    <ClCompile Include="libelas\elas.cpp">
+      <Filter>源文件\libelas</Filter>
+    </ClCompile>
+    <ClCompile Include="libelas\matrix.cpp">
+      <Filter>源文件\libelas</Filter>
+    </ClCompile>
+    <ClCompile Include="libelas\triangle.cpp">
+      <Filter>源文件\libelas</Filter>
+    </ClCompile>
+    <ClCompile Include="libelas\elas_filter.cpp">
+      <Filter>源文件\libelas</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

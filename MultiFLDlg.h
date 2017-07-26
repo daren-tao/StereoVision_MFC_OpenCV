@@ -49,6 +49,11 @@ public:
 	HDC		m_hDc2;
 	CWnd*	m_pWnd2;
 
+	CRect	m_rect3;
+	CDC*	m_pCdc3;
+	HDC		m_hDc3;
+	CWnd*	m_pWnd3;
+
 	cv::Mat m_frame1;	//	left;
 	cv::Mat m_frame2;	//	right;
 
@@ -73,4 +78,5 @@ public:
 
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	afx_msg void OnBnClickedBtnStereoCalib();
+	afx_msg void OnBnClickedBtnReconstruction();
 };

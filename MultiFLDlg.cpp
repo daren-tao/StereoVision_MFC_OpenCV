@@ -7,6 +7,8 @@
 #include "MultiFLDlg.h"
 #include "afxdialogex.h"
 
+#include <sstream>
+#include "T3DReconstruction.h"
 
 
 #ifdef _DEBUG
@@ -66,6 +68,7 @@ BEGIN_MESSAGE_MAP(CMultiFLDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BTN_STOP_VIDEO, &CMultiFLDlg::OnBnClickedBtnStopVideo)
 	ON_WM_TIMER()
 	ON_BN_CLICKED(IDC_BTN_STEREO_CALIB, &CMultiFLDlg::OnBnClickedBtnStereoCalib)
+	ON_BN_CLICKED(IDC_BTN_RECONSTRUCTION, &CMultiFLDlg::OnBnClickedBtnReconstruction)
 END_MESSAGE_MAP()
 
 
@@ -113,20 +116,25 @@ BOOL CMultiFLDlg::OnInitDialog()
 	m_hDc1 = m_pCdc1->GetSafeHdc();
 	m_pWnd1->GetClientRect(&m_rect1);
 
+	m_pWnd3 = GetDlgItem(IDC_STATIC_DISPARITY);
+	m_pCdc3 = m_pWnd3->GetDC();
+	m_hDc3 = m_pCdc3->GetSafeHdc();
+	m_pWnd3->GetClientRect(&m_rect3);
+
 	m_iSaved = 0;
 	m_iChessBoardFrame = 0;
 
-	m_bStereoCalibed = false;
+	m_bStereoCalibed = true;
 
-#if 0
-	cv::FileStorage fp("calib_paras.xml", cv::FileStorage::READ);
+#if 1
+	cv::FileStorage fp("stereo_calib.xml", cv::FileStorage::READ);
 	if(fp.isOpened())
 	{
 		fp["QMatrix"] >> m_mQ;
-		fp["remapX1"] >> m_mRemap1X;
-		fp["remapY1"] >> m_mRemap1Y;
-		fp["remapX2"] >> m_mRemap2X;
-		fp["remapY2"] >> m_mRemap2Y;
+		fp["remap1X"] >> m_mRemap1X;
+		fp["remap1Y"] >> m_mRemap1Y;
+		fp["remap2X"] >> m_mRemap2X;
+		fp["remap2Y"] >> m_mRemap2Y;
 	}
 #endif
 
@@ -258,16 +266,9 @@ void CMultiFLDlg::OnTimer(UINT_PTR nIDEvent)
 				cv::line(tmpFrame2, cv::Point(0, i), cv::Point(tmpFrame2.cols, i), cv::Scalar(0, 0, 255));
 			}
 		}
-		
-
-		frame1 = tmpFrame1;
-		frame2 = tmpFrame2;
-
-		CvvImage1.CopyOf(&frame1,frame1.nChannels);
-		CvvImage1.DrawToHDC(m_hDc1,&m_rect1);
-
-		CvvImage2.CopyOf(&frame2,frame2.nChannels);
-		CvvImage2.DrawToHDC(m_hDc2,&m_rect2);
+		frame1 = tmpFrame1;		frame2 = tmpFrame2;
+		CvvImage1.CopyOf(&frame1,frame1.nChannels);		CvvImage1.DrawToHDC(m_hDc1,&m_rect1);
+		CvvImage2.CopyOf(&frame2,frame2.nChannels);		CvvImage2.DrawToHDC(m_hDc2,&m_rect2);
 
 		break;
 
@@ -337,20 +338,52 @@ void CMultiFLDlg::OnTimer(UINT_PTR nIDEvent)
 void CMultiFLDlg::OnBnClickedBtnStereoCalib()
 {
 	// TODO: 在此添加控件通知处理程序代码;
-	//cv::Mat frame = cv::imread("chessboard.jpg");
-
-	//cv::Mat frame0;
-	//cv::bitwise_not(frame, frame0);
-
-	//IplImage tmpFrame = frame;
-
-	//CvvImage cvvImage;
-	//cvvImage.CopyOf(&tmpFrame,tmpFrame.nChannels);
-	//cvvImage.DrawToHDC(m_hDc1,&m_rect1);
-
-	//tmpFrame = frame0;
-	//cvvImage.CopyOf(&tmpFrame,tmpFrame.nChannels);
-	//cvvImage.DrawToHDC(m_hDc2,&m_rect2);
-
 	SetTimer(1, 3000, NULL);
+}
+
+void getProcessInput(cv::Mat& frame1, cv::Mat& frame2, int index)
+{
+	std::stringstream filename1, filename2;
+	if(index >= 0 && index < 10)
+	{
+		filename1 << "image/2010_03_04_drive_0041/I1_00000" << index << ".png";
+		filename2 << "image/2010_03_04_drive_0041/I2_00000" << index << ".png";
+	}
+	if(index >= 10 && index < 100)
+	{
+		filename1 << "image/2010_03_04_drive_0041/I1_0000" << index << ".png";
+		filename2 << "image/2010_03_04_drive_0041/I2_0000" << index << ".png";
+	}
+	if(index >= 100 && index < 1000)
+	{
+		filename1 << "image/2010_03_04_drive_0041/I1_000" << index << ".png";
+		filename2 << "image/2010_03_04_drive_0041/I2_000" << index << ".png";
+	}
+	frame1 = cv::imread(filename1.str());
+	frame2 = cv::imread(filename2.str());
+}
+
+void CMultiFLDlg::OnBnClickedBtnReconstruction()
+{
+	// TODO: 在此添加控件通知处理程序代码;
+	for( int i = 0; i < 448; i++)
+	{
+		cv::Mat frame1, frame2;
+		getProcessInput(frame1, frame2, i);
+
+		uchar* disparity = new uchar [frame1.rows * frame1.cols];
+		process(frame1, frame2, disparity);
+		cv::Mat disp(frame1.rows, frame1.cols, CV_8UC1, disparity);
+
+		CvvImage CvvImage1, CvvImage3;
+		IplImage iplframe1, iplframe3;
+		iplframe1 = frame1;
+		iplframe3 = disp;
+		CvvImage1.CopyOf(&iplframe1,iplframe1.nChannels);
+		CvvImage1.DrawToHDC(m_hDc1,&m_rect1);
+
+		CvvImage3.CopyOf(&iplframe3,iplframe3.nChannels);
+		CvvImage3.DrawToHDC(m_hDc3,&m_rect3);
+		delete disparity;
+	}
 }
