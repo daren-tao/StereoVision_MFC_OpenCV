@@ -15,6 +15,8 @@
 #define new DEBUG_NEW
 #endif
 
+void getProcessInput(cv::Mat& frame1, cv::Mat& frame2, int index);
+
 
 // 用于应用程序“关于”菜单项的 CAboutDlg 对话框;
 
@@ -124,7 +126,7 @@ BOOL CMultiFLDlg::OnInitDialog()
 	m_iSaved = 0;
 	m_iChessBoardFrame = 0;
 
-	m_bStereoCalibed = true;
+	m_bStereoCalibed = false;
 
 #if 1
 	cv::FileStorage fp("stereo_calib.xml", cv::FileStorage::READ);
@@ -196,11 +198,19 @@ void CMultiFLDlg::OnBnClickedBtnOpenCam()
 	// TODO: 在此添加控件通知处理程序代码;
 	m_camera1.open(1);
 	m_camera2.open(0);
-	if(!m_camera1.isOpened() && !m_camera2.isOpened())	
+	if(!m_camera1.isOpened() && !m_camera2.isOpened())
 	{
 		AfxMessageBox(" open cameras failed !");
 		return;
 	}
+	GetDlgItem(IDC_BTN_OPEN_CAM)->EnableWindow(FALSE);
+	GetDlgItem(IDC_BTN_STOP_VIDEO)->EnableWindow(TRUE);
+
+	m_camera1.set(CV_CAP_PROP_FRAME_HEIGHT, CAP_HIGH);
+	m_camera1.set(CV_CAP_PROP_FRAME_WIDTH, CAP_WIDE);
+
+	m_camera2.set(CV_CAP_PROP_FRAME_HEIGHT, CAP_HIGH);
+	m_camera2.set(CV_CAP_PROP_FRAME_WIDTH, CAP_WIDE);
 
 	SetTimer(0, 33, NULL);
 }
@@ -211,6 +221,10 @@ void CMultiFLDlg::OnBnClickedBtnStopVideo()
 	// TODO: 在此添加控件通知处理程序代码;
 	m_bStopVideo = true;
 	KillTimer(0);
+	KillTimer(1);
+
+	GetDlgItem(IDC_BTN_OPEN_CAM)->EnableWindow(TRUE);
+	GetDlgItem(IDC_BTN_STOP_VIDEO)->EnableWindow(FALSE);
 }
 
 
@@ -241,24 +255,38 @@ void CMultiFLDlg::detectAndShowCircles(cv::Mat& frame1, cv::Mat& frame2)
 void CMultiFLDlg::OnTimer(UINT_PTR nIDEvent)
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值;
-	CvvImage CvvImage1, CvvImage2;
+	CvvImage CvvImage1, CvvImage2, CvvImage3;
 	cv::Mat tmpFrame1, tmpFrame2;
 	m_camera1 >> tmpFrame1;
 	m_camera2 >> tmpFrame2;
 
-	IplImage frame1, frame2;
+	IplImage frame1, frame2, frame3;
 	std::vector<cv::Point2f> corner1, corner2;
 	std::stringstream filename1, filename2;
+	char txt[16];
+	uchar* disparity;
+	cv::Mat disp;
 	switch(nIDEvent)
 	{
 	case 0:
 		KillTimer(0);
-		SetTimer(0, 33, NULL);
 
 		if(m_bStereoCalibed)
 		{
 			cv::remap(tmpFrame1, tmpFrame1, m_mRemap1X, m_mRemap1Y, CV_INTER_LINEAR);
 			cv::remap(tmpFrame2, tmpFrame2, m_mRemap2X, m_mRemap2Y, CV_INTER_LINEAR);
+
+			//	cv::resize(tmpFrame1, tmpFrame1, cv::Size(320, 240), 0, 0, cv::INTER_LINEAR);
+			//	cv::resize(tmpFrame2, tmpFrame2, cv::Size(320, 240), 0, 0, cv::INTER_LINEAR);
+
+			disparity = new uchar [tmpFrame1.rows * tmpFrame1.cols];
+			process(tmpFrame1, tmpFrame2, disparity);
+			disp = cv::Mat(tmpFrame1.rows, tmpFrame1.cols, CV_8UC1, disparity);
+
+			frame3 = disp;
+			CvvImage3.CopyOf(&frame3, frame3.nChannels);
+			CvvImage3.DrawToHDC(m_hDc3,&m_rect3);
+			delete disparity;
 
 			for(int i = 50; i < tmpFrame1.rows; i += 50)
 			{
@@ -266,9 +294,14 @@ void CMultiFLDlg::OnTimer(UINT_PTR nIDEvent)
 				cv::line(tmpFrame2, cv::Point(0, i), cv::Point(tmpFrame2.cols, i), cv::Scalar(0, 0, 255));
 			}
 		}
+		sprintf(txt, "%d / 20", m_iChessBoardFrame);
+		cv::putText(tmpFrame1, txt, cv::Point(50, 20), cv::FONT_HERSHEY_PLAIN, 1.0, cv::Scalar(0, 0, 255));
+
 		frame1 = tmpFrame1;		frame2 = tmpFrame2;
 		CvvImage1.CopyOf(&frame1,frame1.nChannels);		CvvImage1.DrawToHDC(m_hDc1,&m_rect1);
 		CvvImage2.CopyOf(&frame2,frame2.nChannels);		CvvImage2.DrawToHDC(m_hDc2,&m_rect2);
+
+		SetTimer(0, 33, NULL);
 
 		break;
 
@@ -276,22 +309,24 @@ void CMultiFLDlg::OnTimer(UINT_PTR nIDEvent)
 		if(m_iChessBoardFrame < 20)
 		{
 			KillTimer(0);
+			KillTimer(1);
 
 			corner1 = detectCorners(tmpFrame1, cv::Size(6, 4));
 			if(corner1.size() > 0)
 				corner2 = detectCorners(tmpFrame2, cv::Size(6, 4));
+
 			if(corner1.size() > 0)
 				cv::drawChessboardCorners(tmpFrame1, cv::Size(6, 4), corner1, true);
 			if(corner2.size() > 0)
 				cv::drawChessboardCorners(tmpFrame2, cv::Size(6, 4), corner2, true);
 
-			cv::bitwise_not(tmpFrame1, tmpFrame1);
-			cv::bitwise_not(tmpFrame2, tmpFrame2);
-
-			if (corner1.size() == corner2.size())
+			if (corner1.size() == corner2.size() && corner1.size() == 24)
 			{
+				cv::bitwise_not(tmpFrame1, tmpFrame1);
+				cv::bitwise_not(tmpFrame2, tmpFrame2);
 				m_vCorners1.push_back(corner1);
 				m_vCorners2.push_back(corner2);
+				m_iChessBoardFrame++;
 			}
 
 			frame1 = tmpFrame1;
@@ -303,16 +338,15 @@ void CMultiFLDlg::OnTimer(UINT_PTR nIDEvent)
 			CvvImage2.CopyOf(&frame2,frame2.nChannels);
 			CvvImage2.DrawToHDC(m_hDc2,&m_rect2);
 
-			SetTimer(0, 500, NULL);
-
-			m_iChessBoardFrame++;
+			SetTimer(0, 400, NULL);
+			SetTimer(1, 3000, NULL);
 		}
 		else
 		{
 			KillTimer(0);
 			KillTimer(1);
 			MessageBox("start calibrating ...", "notice", MB_OK);
-			calibrateStereoVision(m_vCorners1, m_vCorners2, cv::Size(6, 4), 35.0f, cv::Size(640, 480),
+			calibrateStereoVision(m_vCorners1, m_vCorners2, cv::Size(6, 4), 35.0f, cv::Size(CAP_WIDE, CAP_HIGH),
 				m_mRemap1X, m_mRemap1Y, m_mRemap2X, m_mRemap2Y, m_mQ);
 
 			if(m_fsCalib.open("stereo_calib.xml", cv::FileStorage::WRITE))
@@ -328,6 +362,8 @@ void CMultiFLDlg::OnTimer(UINT_PTR nIDEvent)
 			m_bStereoCalibed = true;
 			MessageBox("stereo calibration finished.", "notice", MB_OK);
 			SetTimer(0, 33, NULL);
+
+			GetDlgItem(IDC_BTN_STEREO_CALIB)->EnableWindow(TRUE);
 		}
 		break;
 	}
@@ -339,6 +375,8 @@ void CMultiFLDlg::OnBnClickedBtnStereoCalib()
 {
 	// TODO: 在此添加控件通知处理程序代码;
 	SetTimer(1, 3000, NULL);
+
+	GetDlgItem(IDC_BTN_STEREO_CALIB)->EnableWindow(FALSE);
 }
 
 void getProcessInput(cv::Mat& frame1, cv::Mat& frame2, int index)
@@ -370,10 +408,20 @@ void CMultiFLDlg::OnBnClickedBtnReconstruction()
 	{
 		cv::Mat frame1, frame2;
 		getProcessInput(frame1, frame2, i);
+		cv::resize(frame1, frame1, cv::Size(CAP_WIDE, CAP_HIGH), 0, 0, cv::INTER_LINEAR);
+		cv::resize(frame2, frame2, cv::Size(CAP_WIDE, CAP_HIGH), 0, 0, cv::INTER_LINEAR);
 
+		int64 start = cv::getTickCount();
 		uchar* disparity = new uchar [frame1.rows * frame1.cols];
 		process(frame1, frame2, disparity);
 		cv::Mat disp(frame1.rows, frame1.cols, CV_8UC1, disparity);
+		double fps = cv::getTickFrequency() / double(cv::getTickCount() - start);
+		char tfps[16], tsize[16];
+		sprintf(tfps, "fps : %f", fps);
+		cv::putText(disp, tfps, cv::Point(10, 50), cv::FONT_HERSHEY_PLAIN, 1.0, cv::Scalar(255));
+																		   
+	//	sprintf(tsize, "size : %d * %d", frame1.cols, frame1.rows);		   
+	//	cv::putText(disp, tsize, cv::Point(10, 20), cv::FONT_HERSHEY_PLAIN, 1.0, cv::Scalar(255));
 
 		CvvImage CvvImage1, CvvImage3;
 		IplImage iplframe1, iplframe3;

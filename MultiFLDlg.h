@@ -8,6 +8,9 @@
 
 #include "StereoCalibration.h"
 
+#define CAP_HIGH	240
+#define CAP_WIDE	320
+
 
 // CMultiFLDlg ¶Ô»°¿ò;
 class CMultiFLDlg : public CDialogEx
