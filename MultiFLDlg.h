@@ -8,8 +8,8 @@
 
 #include "StereoCalibration.h"
 
-#define CAP_HIGH	240
-#define CAP_WIDE	320
+#define CAP_HIGH	480
+#define CAP_WIDE	640
 
 
 // CMultiFLDlg ¶Ô»°¿ò;
@@ -63,6 +63,7 @@ public:
 	unsigned int m_iSaved;
 	unsigned int m_iChessBoardFrame;
 	bool m_bStereoCalibed;
+	bool m_bSaveCur3D;
 
 	StereoCalibration m_stereoCalibration;
 
@@ -82,4 +83,5 @@ public:
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	afx_msg void OnBnClickedBtnStereoCalib();
 	afx_msg void OnBnClickedBtnReconstruction();
+	afx_msg void OnBnClickedBtn3dSave();
 };

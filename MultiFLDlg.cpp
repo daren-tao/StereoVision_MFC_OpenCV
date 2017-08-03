@@ -71,6 +71,7 @@ BEGIN_MESSAGE_MAP(CMultiFLDlg, CDialogEx)
 	ON_WM_TIMER()
 	ON_BN_CLICKED(IDC_BTN_STEREO_CALIB, &CMultiFLDlg::OnBnClickedBtnStereoCalib)
 	ON_BN_CLICKED(IDC_BTN_RECONSTRUCTION, &CMultiFLDlg::OnBnClickedBtnReconstruction)
+	ON_BN_CLICKED(IDC_BTN_3D_SAVE, &CMultiFLDlg::OnBnClickedBtn3dSave)
 END_MESSAGE_MAP()
 
 
@@ -126,7 +127,8 @@ BOOL CMultiFLDlg::OnInitDialog()
 	m_iSaved = 0;
 	m_iChessBoardFrame = 0;
 
-	m_bStereoCalibed = false;
+	m_bSaveCur3D = false;
+	m_bStereoCalibed = true;
 
 #if 1
 	cv::FileStorage fp("stereo_calib.xml", cv::FileStorage::READ);
@@ -206,12 +208,6 @@ void CMultiFLDlg::OnBnClickedBtnOpenCam()
 	GetDlgItem(IDC_BTN_OPEN_CAM)->EnableWindow(FALSE);
 	GetDlgItem(IDC_BTN_STOP_VIDEO)->EnableWindow(TRUE);
 
-	m_camera1.set(CV_CAP_PROP_FRAME_HEIGHT, CAP_HIGH);
-	m_camera1.set(CV_CAP_PROP_FRAME_WIDTH, CAP_WIDE);
-
-	m_camera2.set(CV_CAP_PROP_FRAME_HEIGHT, CAP_HIGH);
-	m_camera2.set(CV_CAP_PROP_FRAME_WIDTH, CAP_WIDE);
-
 	SetTimer(0, 33, NULL);
 }
 
@@ -266,6 +262,9 @@ void CMultiFLDlg::OnTimer(UINT_PTR nIDEvent)
 	char txt[16];
 	uchar* disparity;
 	cv::Mat disp;
+	cv::Mat pointCloud;
+	cv::Point3f point;
+	std::ofstream fp;
 	switch(nIDEvent)
 	{
 	case 0:
@@ -276,8 +275,8 @@ void CMultiFLDlg::OnTimer(UINT_PTR nIDEvent)
 			cv::remap(tmpFrame1, tmpFrame1, m_mRemap1X, m_mRemap1Y, CV_INTER_LINEAR);
 			cv::remap(tmpFrame2, tmpFrame2, m_mRemap2X, m_mRemap2Y, CV_INTER_LINEAR);
 
-			//	cv::resize(tmpFrame1, tmpFrame1, cv::Size(320, 240), 0, 0, cv::INTER_LINEAR);
-			//	cv::resize(tmpFrame2, tmpFrame2, cv::Size(320, 240), 0, 0, cv::INTER_LINEAR);
+		//	cv::resize(tmpFrame1, tmpFrame1, cv::Size(320, 240), 0, 0, cv::INTER_LINEAR);
+		//	cv::resize(tmpFrame2, tmpFrame2, cv::Size(320, 240), 0, 0, cv::INTER_LINEAR);
 
 			disparity = new uchar [tmpFrame1.rows * tmpFrame1.cols];
 			process(tmpFrame1, tmpFrame2, disparity);
@@ -292,6 +291,22 @@ void CMultiFLDlg::OnTimer(UINT_PTR nIDEvent)
 			{
 				cv::line(tmpFrame1, cv::Point(0, i), cv::Point(tmpFrame1.cols, i), cv::Scalar(0, 0, 255));
 				cv::line(tmpFrame2, cv::Point(0, i), cv::Point(tmpFrame2.cols, i), cv::Scalar(0, 0, 255));
+			}
+
+			if (m_bSaveCur3D)
+			{
+				fp.open("pointclouds.txt", std::ios::out);
+				cv::reprojectImageTo3D(disp, pointCloud, m_mQ, true);
+				for (int y = 0; y < pointCloud.rows; ++y)
+				{
+					for (int x = 0; x < pointCloud.cols; ++x)
+					{
+						point = pointCloud.at<cv::Point3f>(y,x);
+						fp << point.x << " " << point.y << " " << point.z << "\n";
+					}
+				}
+				fp.close();
+				break;
 			}
 		}
 		sprintf(txt, "%d / 20", m_iChessBoardFrame);
@@ -322,6 +337,11 @@ void CMultiFLDlg::OnTimer(UINT_PTR nIDEvent)
 
 			if (corner1.size() == corner2.size() && corner1.size() == 24)
 			{
+				filename1 << "image/chessBoards/left" << m_iChessBoardFrame << ".jpg";
+				filename2 << "image/chessBoards/right" << m_iChessBoardFrame << ".jpg";
+				cv::imwrite(filename1.str(), tmpFrame1);
+				cv::imwrite(filename2.str(), tmpFrame2);
+
 				cv::bitwise_not(tmpFrame1, tmpFrame1);
 				cv::bitwise_not(tmpFrame2, tmpFrame2);
 				m_vCorners1.push_back(corner1);
@@ -343,8 +363,7 @@ void CMultiFLDlg::OnTimer(UINT_PTR nIDEvent)
 		}
 		else
 		{
-			KillTimer(0);
-			KillTimer(1);
+			KillTimer(0);	KillTimer(1);
 			MessageBox("start calibrating ...", "notice", MB_OK);
 			calibrateStereoVision(m_vCorners1, m_vCorners2, cv::Size(6, 4), 35.0f, cv::Size(CAP_WIDE, CAP_HIGH),
 				m_mRemap1X, m_mRemap1Y, m_mRemap2X, m_mRemap2Y, m_mQ);
@@ -408,8 +427,8 @@ void CMultiFLDlg::OnBnClickedBtnReconstruction()
 	{
 		cv::Mat frame1, frame2;
 		getProcessInput(frame1, frame2, i);
-		cv::resize(frame1, frame1, cv::Size(CAP_WIDE, CAP_HIGH), 0, 0, cv::INTER_LINEAR);
-		cv::resize(frame2, frame2, cv::Size(CAP_WIDE, CAP_HIGH), 0, 0, cv::INTER_LINEAR);
+		cv::resize(frame1, frame1, cv::Size(640, 480), 0, 0, cv::INTER_LINEAR);
+		cv::resize(frame2, frame2, cv::Size(640, 480), 0, 0, cv::INTER_LINEAR);
 
 		int64 start = cv::getTickCount();
 		uchar* disparity = new uchar [frame1.rows * frame1.cols];
@@ -434,4 +453,11 @@ void CMultiFLDlg::OnBnClickedBtnReconstruction()
 		CvvImage3.DrawToHDC(m_hDc3,&m_rect3);
 		delete disparity;
 	}
+}
+
+
+void CMultiFLDlg::OnBnClickedBtn3dSave()
+{
+	// TODO: 在此添加控件通知处理程序代码;
+	m_bSaveCur3D = true;
 }
