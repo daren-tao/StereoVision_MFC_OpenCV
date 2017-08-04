@@ -69,7 +69,7 @@ public:
 
 	std::vector<std::vector<cv::Point2f>> m_vCorners1;
 	std::vector<std::vector<cv::Point2f>> m_vCorners2;
-	cv::Mat m_mRemap1X, m_mRemap1Y, m_mRemap2X, m_mRemap2Y, m_mQ;
+	cv::Mat m_mRemapX1, m_mRemapY1, m_mRemapX2, m_mRemapY2, m_mQ;
 
 	cv::FileStorage m_fsCalib;
 

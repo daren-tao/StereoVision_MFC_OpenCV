@@ -131,14 +131,14 @@ BOOL CMultiFLDlg::OnInitDialog()
 	m_bStereoCalibed = true;
 
 #if 1
-	cv::FileStorage fp("stereo_calib.xml", cv::FileStorage::READ);
+	cv::FileStorage fp("calib_paras.xml", cv::FileStorage::READ);
 	if(fp.isOpened())
 	{
 		fp["QMatrix"] >> m_mQ;
-		fp["remap1X"] >> m_mRemap1X;
-		fp["remap1Y"] >> m_mRemap1Y;
-		fp["remap2X"] >> m_mRemap2X;
-		fp["remap2Y"] >> m_mRemap2Y;
+		fp["remapX1"] >> m_mRemapX1;
+		fp["remapY1"] >> m_mRemapY1;
+		fp["remapX2"] >> m_mRemapX2;
+		fp["remapY2"] >> m_mRemapY2;
 	}
 #endif
 
@@ -272,11 +272,11 @@ void CMultiFLDlg::OnTimer(UINT_PTR nIDEvent)
 
 		if(m_bStereoCalibed)
 		{
-			cv::remap(tmpFrame1, tmpFrame1, m_mRemap1X, m_mRemap1Y, CV_INTER_LINEAR);
-			cv::remap(tmpFrame2, tmpFrame2, m_mRemap2X, m_mRemap2Y, CV_INTER_LINEAR);
+			cv::remap(tmpFrame1, tmpFrame1, m_mRemapX1, m_mRemapY1, CV_INTER_LINEAR);
+			cv::remap(tmpFrame2, tmpFrame2, m_mRemapX2, m_mRemapY2, CV_INTER_LINEAR);
 
-		//	cv::resize(tmpFrame1, tmpFrame1, cv::Size(320, 240), 0, 0, cv::INTER_LINEAR);
-		//	cv::resize(tmpFrame2, tmpFrame2, cv::Size(320, 240), 0, 0, cv::INTER_LINEAR);
+			cv::resize(tmpFrame1, tmpFrame1, cv::Size(320, 240), 0, 0, cv::INTER_LINEAR);
+			cv::resize(tmpFrame2, tmpFrame2, cv::Size(320, 240), 0, 0, cv::INTER_LINEAR);
 
 			disparity = new uchar [tmpFrame1.rows * tmpFrame1.cols];
 			process(tmpFrame1, tmpFrame2, disparity);
@@ -296,6 +296,7 @@ void CMultiFLDlg::OnTimer(UINT_PTR nIDEvent)
 			if (m_bSaveCur3D)
 			{
 				fp.open("pointclouds.txt", std::ios::out);
+				/*
 				cv::reprojectImageTo3D(disp, pointCloud, m_mQ, true);
 				for (int y = 0; y < pointCloud.rows; ++y)
 				{
@@ -304,6 +305,11 @@ void CMultiFLDlg::OnTimer(UINT_PTR nIDEvent)
 						point = pointCloud.at<cv::Point3f>(y,x);
 						fp << point.x << " " << point.y << " " << point.z << "\n";
 					}
+				}
+				*/
+				for (int i=0;i<tmpFrame1.rows * tmpFrame1.cols;i++)
+				{
+					fp << int(disparity[i]) << "\n";
 				}
 				fp.close();
 				break;
@@ -366,14 +372,14 @@ void CMultiFLDlg::OnTimer(UINT_PTR nIDEvent)
 			KillTimer(0);	KillTimer(1);
 			MessageBox("start calibrating ...", "notice", MB_OK);
 			calibrateStereoVision(m_vCorners1, m_vCorners2, cv::Size(6, 4), 35.0f, cv::Size(CAP_WIDE, CAP_HIGH),
-				m_mRemap1X, m_mRemap1Y, m_mRemap2X, m_mRemap2Y, m_mQ);
+				m_mRemapX1, m_mRemapY1, m_mRemapX2, m_mRemapY2, m_mQ);
 
 			if(m_fsCalib.open("stereo_calib.xml", cv::FileStorage::WRITE))
 			{
-				m_fsCalib << "remap1X" << m_mRemap1X;
-				m_fsCalib << "remap1Y" << m_mRemap1Y;
-				m_fsCalib << "remap2X" << m_mRemap2X;
-				m_fsCalib << "remap2Y" << m_mRemap2Y;
+				m_fsCalib << "remapX1" << m_mRemapX1;
+				m_fsCalib << "remapY1" << m_mRemapY1;
+				m_fsCalib << "remapX2" << m_mRemapX2;
+				m_fsCalib << "remapY2" << m_mRemapY2;
 				m_fsCalib << "QMatrix" << m_mQ;
 			}
 			m_fsCalib.release();
