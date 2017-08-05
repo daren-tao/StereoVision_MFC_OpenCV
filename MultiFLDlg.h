@@ -6,7 +6,6 @@
 
 #include <sstream>
 
-#include "StereoCalibration.h"
 
 #define CAP_HIGH	480
 #define CAP_WIDE	640
@@ -64,8 +63,6 @@ public:
 	unsigned int m_iChessBoardFrame;
 	bool m_bStereoCalibed;
 	bool m_bSaveCur3D;
-
-	StereoCalibration m_stereoCalibration;
 
 	std::vector<std::vector<cv::Point2f>> m_vCorners1;
 	std::vector<std::vector<cv::Point2f>> m_vCorners2;

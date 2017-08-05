@@ -48,9 +48,6 @@
     <ClInclude Include="CvvImage.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="StereoCalibration.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="TStereoCalibration.h">
       <Filter>头文件</Filter>
     </ClInclude>
@@ -90,9 +87,6 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="CvvImage.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="StereoCalibration.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="libelas\descriptor.cpp">
