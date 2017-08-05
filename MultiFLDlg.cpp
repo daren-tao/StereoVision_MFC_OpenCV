@@ -198,6 +198,16 @@ HCURSOR CMultiFLDlg::OnQueryDragIcon()
 void CMultiFLDlg::OnBnClickedBtnOpenCam()
 {
 	// TODO: 在此添加控件通知处理程序代码;
+#ifdef CAM_DS
+	if(!m_camera1.OpenCamera(0, false, CAP_WIDE, CAP_HIGH))
+	{
+		AfxMessageBox(_T("打开左摄像头失败."));		return;
+	}
+	if(!m_camera2.OpenCamera(1, false, CAP_WIDE, CAP_HIGH))
+	{
+		AfxMessageBox(_T("打开右摄像头失败."));		return;
+	}
+#else
 	m_camera1.open(1);
 	m_camera2.open(0);
 	if(!m_camera1.isOpened() && !m_camera2.isOpened())
@@ -205,6 +215,7 @@ void CMultiFLDlg::OnBnClickedBtnOpenCam()
 		AfxMessageBox(" open cameras failed !");
 		return;
 	}
+#endif
 	GetDlgItem(IDC_BTN_OPEN_CAM)->EnableWindow(FALSE);
 	GetDlgItem(IDC_BTN_STOP_VIDEO)->EnableWindow(TRUE);
 
@@ -222,7 +233,6 @@ void CMultiFLDlg::OnBnClickedBtnStopVideo()
 	GetDlgItem(IDC_BTN_OPEN_CAM)->EnableWindow(TRUE);
 	GetDlgItem(IDC_BTN_STOP_VIDEO)->EnableWindow(FALSE);
 }
-
 
 void CMultiFLDlg::detectAndShowCircles(cv::Mat& frame1, cv::Mat& frame2)
 {
@@ -247,14 +257,11 @@ void CMultiFLDlg::detectAndShowCircles(cv::Mat& frame1, cv::Mat& frame2)
 	}
 }
 
-
 void CMultiFLDlg::OnTimer(UINT_PTR nIDEvent)
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值;
 	CvvImage CvvImage1, CvvImage2, CvvImage3;
 	cv::Mat tmpFrame1, tmpFrame2;
-	m_camera1 >> tmpFrame1;
-	m_camera2 >> tmpFrame2;
 
 	IplImage frame1, frame2, frame3;
 	std::vector<cv::Point2f> corner1, corner2;
@@ -265,6 +272,15 @@ void CMultiFLDlg::OnTimer(UINT_PTR nIDEvent)
 	cv::Mat pointCloud;
 	cv::Point3f point;
 	std::ofstream fp;
+
+#ifdef CAM_DS
+	tmpFrame1 = cv::Mat(m_camera1.QueryFrame());
+	tmpFrame2 = cv::Mat(m_camera1.QueryFrame());
+#else
+	m_camera1 >> tmpFrame1;
+	m_camera2 >> tmpFrame2;
+#endif
+
 	switch(nIDEvent)
 	{
 	case 0:

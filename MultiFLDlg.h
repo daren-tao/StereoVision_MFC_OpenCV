@@ -5,11 +5,12 @@
 #pragma once
 
 #include <sstream>
-
+#include "CameraDS.h"
 
 #define CAP_HIGH	480
 #define CAP_WIDE	640
 
+//#define CAM_DS
 
 // CMultiFLDlg ¶Ô»°¿ò;
 class CMultiFLDlg : public CDialogEx
@@ -39,13 +40,19 @@ protected:
 public:
 	bool m_bStopVideo;
 
+#ifdef CAM_DS
+	CCameraDS m_camera1;
+	CCameraDS m_camera2;
+#else
 	cv::VideoCapture m_camera1;
+	cv::VideoCapture m_camera2;
+#endif
+
 	CRect	m_rect1;
 	CDC*	m_pCdc1;
 	HDC		m_hDc1;
 	CWnd*	m_pWnd1;
-	
-	cv::VideoCapture m_camera2;
+
 	CRect	m_rect2;
 	CDC*	m_pCdc2;
 	HDC		m_hDc2;

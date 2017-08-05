@@ -75,6 +75,9 @@
     <ClInclude Include="libelas\elas_filter.h">
       <Filter>头文件\libelas</Filter>
     </ClInclude>
+    <ClInclude Include="CameraDS.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MultiFL.cpp">
@@ -103,6 +106,9 @@
     </ClCompile>
     <ClCompile Include="libelas\elas_filter.cpp">
       <Filter>源文件\libelas</Filter>
+    </ClCompile>
+    <ClCompile Include="CameraDS.cpp">
+      <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
