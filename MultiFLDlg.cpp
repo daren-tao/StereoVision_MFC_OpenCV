@@ -72,6 +72,8 @@ BEGIN_MESSAGE_MAP(CMultiFLDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BTN_STEREO_CALIB, &CMultiFLDlg::OnBnClickedBtnStereoCalib)
 	ON_BN_CLICKED(IDC_BTN_RECONSTRUCTION, &CMultiFLDlg::OnBnClickedBtnReconstruction)
 	ON_BN_CLICKED(IDC_BTN_3D_SAVE, &CMultiFLDlg::OnBnClickedBtn3dSave)
+	ON_CBN_SELCHANGE(IDC_COMBO_IMAGE_SIZE, &CMultiFLDlg::OnCbnSelchangeComboImageSize)
+	ON_BN_CLICKED(IDC_RADIO_LOAD_CALIB_PARAS, &CMultiFLDlg::OnBnClickedRadioLoadCalibParas)
 END_MESSAGE_MAP()
 
 
@@ -128,19 +130,20 @@ BOOL CMultiFLDlg::OnInitDialog()
 	m_iChessBoardFrame = 0;
 
 	m_bSaveCur3D = false;
-	m_bStereoCalibed = true;
+	m_bStereoCalibed = false;
 
-#if 1
-	cv::FileStorage fp("calib_paras.xml", cv::FileStorage::READ);
-	if(fp.isOpened())
-	{
-		fp["QMatrix"] >> m_mQ;
-		fp["remapX1"] >> m_mRemapX1;
-		fp["remapY1"] >> m_mRemapY1;
-		fp["remapX2"] >> m_mRemapX2;
-		fp["remapY2"] >> m_mRemapY2;
-	}
-#endif
+	((CComboBox*)GetDlgItem(IDC_COMBO_IMAGE_SIZE))->AddString("1920 * 1080");
+	((CComboBox*)GetDlgItem(IDC_COMBO_IMAGE_SIZE))->AddString("1280 * 1024");
+	((CComboBox*)GetDlgItem(IDC_COMBO_IMAGE_SIZE))->AddString("1024 * 768");
+	((CComboBox*)GetDlgItem(IDC_COMBO_IMAGE_SIZE))->AddString("640 * 480");
+	((CComboBox*)GetDlgItem(IDC_COMBO_IMAGE_SIZE))->AddString("320 * 240");
+	
+	((CComboBox*)GetDlgItem(IDC_COMBO_IMAGE_SIZE))->SetCurSel(0);
+	m_imageWide = 1920;
+	m_imageHigh = 1080;
+
+	m_bLoadCalibParas = false;
+	((CButton*)GetDlgItem(IDC_RADIO_LOAD_CALIB_PARAS))->SetCheck(FALSE);
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE;
 }
@@ -199,11 +202,11 @@ void CMultiFLDlg::OnBnClickedBtnOpenCam()
 {
 	// TODO: 在此添加控件通知处理程序代码;
 #ifdef CAM_DS
-	if(!m_camera1.OpenCamera(0, false, CAP_WIDE, CAP_HIGH))
+	if(!m_camera1.OpenCamera(0, false, m_imageWide, m_imageHigh))
 	{
 		AfxMessageBox(_T("打开左摄像头失败."));		return;
 	}
-	if(!m_camera2.OpenCamera(1, false, CAP_WIDE, CAP_HIGH))
+	if(!m_camera2.OpenCamera(1, false, m_imageWide, m_imageHigh))
 	{
 		AfxMessageBox(_T("打开右摄像头失败."));		return;
 	}
@@ -219,6 +222,20 @@ void CMultiFLDlg::OnBnClickedBtnOpenCam()
 	GetDlgItem(IDC_BTN_OPEN_CAM)->EnableWindow(FALSE);
 	GetDlgItem(IDC_BTN_STOP_VIDEO)->EnableWindow(TRUE);
 
+#if 1
+	std::stringstream calibfile;
+	calibfile << "calib_paras_" << m_imageWide << "_" << m_imageHigh << ".xml";
+	cv::FileStorage fp(calibfile.str(), cv::FileStorage::READ);
+	if(fp.isOpened())
+	{
+		fp["QMatrix"] >> m_mQ;
+		fp["remapX1"] >> m_mRemapX1;
+		fp["remapY1"] >> m_mRemapY1;
+		fp["remapX2"] >> m_mRemapX2;
+		fp["remapY2"] >> m_mRemapY2;
+	}
+#endif
+
 	SetTimer(0, 33, NULL);
 }
 
@@ -229,7 +246,13 @@ void CMultiFLDlg::OnBnClickedBtnStopVideo()
 	m_bStopVideo = true;
 	KillTimer(0);
 	KillTimer(1);
-
+#ifdef CAM_DS
+	m_camera1.CloseCamera();
+	m_camera2.CloseCamera();
+#else
+	m_camera1.release();
+	m_camera2.release();
+#endif
 	GetDlgItem(IDC_BTN_OPEN_CAM)->EnableWindow(TRUE);
 	GetDlgItem(IDC_BTN_STOP_VIDEO)->EnableWindow(FALSE);
 }
@@ -266,6 +289,7 @@ void CMultiFLDlg::OnTimer(UINT_PTR nIDEvent)
 	IplImage frame1, frame2, frame3;
 	std::vector<cv::Point2f> corner1, corner2;
 	std::stringstream filename1, filename2;
+	std::stringstream calibfilesave, calibfileread;
 	char txt[16];
 	uchar* disparity;
 	cv::Mat disp;
@@ -275,7 +299,7 @@ void CMultiFLDlg::OnTimer(UINT_PTR nIDEvent)
 
 #ifdef CAM_DS
 	tmpFrame1 = cv::Mat(m_camera1.QueryFrame());
-	tmpFrame2 = cv::Mat(m_camera1.QueryFrame());
+	tmpFrame2 = cv::Mat(m_camera2.QueryFrame());
 #else
 	m_camera1 >> tmpFrame1;
 	m_camera2 >> tmpFrame2;
@@ -291,8 +315,11 @@ void CMultiFLDlg::OnTimer(UINT_PTR nIDEvent)
 			cv::remap(tmpFrame1, tmpFrame1, m_mRemapX1, m_mRemapY1, CV_INTER_LINEAR);
 			cv::remap(tmpFrame2, tmpFrame2, m_mRemapX2, m_mRemapY2, CV_INTER_LINEAR);
 
-			cv::resize(tmpFrame1, tmpFrame1, cv::Size(320, 240), 0, 0, cv::INTER_LINEAR);
-			cv::resize(tmpFrame2, tmpFrame2, cv::Size(320, 240), 0, 0, cv::INTER_LINEAR);
+		//	cv::resize(tmpFrame1, tmpFrame1, cv::Size(320, 240), 0, 0, cv::INTER_LINEAR);
+		//	cv::resize(tmpFrame2, tmpFrame2, cv::Size(320, 240), 0, 0, cv::INTER_LINEAR);
+
+			cv::resize(tmpFrame1, tmpFrame1, cv::Size(), 0.5, 0.5, cv::INTER_LINEAR);
+			cv::resize(tmpFrame2, tmpFrame2, cv::Size(), 0.5, 0.5, cv::INTER_LINEAR);
 
 			disparity = new uchar [tmpFrame1.rows * tmpFrame1.cols];
 			process(tmpFrame1, tmpFrame2, disparity);
@@ -309,6 +336,7 @@ void CMultiFLDlg::OnTimer(UINT_PTR nIDEvent)
 				cv::line(tmpFrame2, cv::Point(0, i), cv::Point(tmpFrame2.cols, i), cv::Scalar(0, 0, 255));
 			}
 
+#if 0
 			if (m_bSaveCur3D)
 			{
 				fp.open("pointclouds.txt", std::ios::out);
@@ -330,6 +358,7 @@ void CMultiFLDlg::OnTimer(UINT_PTR nIDEvent)
 				fp.close();
 				break;
 			}
+#endif
 		}
 		sprintf(txt, "%d / 20", m_iChessBoardFrame);
 		cv::putText(tmpFrame1, txt, cv::Point(50, 20), cv::FONT_HERSHEY_PLAIN, 1.0, cv::Scalar(0, 0, 255));
@@ -352,17 +381,15 @@ void CMultiFLDlg::OnTimer(UINT_PTR nIDEvent)
 			if(corner1.size() > 0)
 				corner2 = detectCorners(tmpFrame2, cv::Size(6, 4));
 
-			if(corner1.size() > 0)
-				cv::drawChessboardCorners(tmpFrame1, cv::Size(6, 4), corner1, true);
-			if(corner2.size() > 0)
-				cv::drawChessboardCorners(tmpFrame2, cv::Size(6, 4), corner2, true);
-
 			if (corner1.size() == corner2.size() && corner1.size() == 24)
 			{
-				filename1 << "image/chessBoards/left" << m_iChessBoardFrame << ".jpg";
-				filename2 << "image/chessBoards/right" << m_iChessBoardFrame << ".jpg";
+				filename1 << "image/chessBoards/left/left_" << m_imageWide << "_" << m_imageHigh << "_" << m_iChessBoardFrame << ".jpg";
+				filename2 << "image/chessBoards/right/right_" << m_imageWide << "_" << m_imageHigh << "_" <<m_iChessBoardFrame << ".jpg";
 				cv::imwrite(filename1.str(), tmpFrame1);
 				cv::imwrite(filename2.str(), tmpFrame2);
+				
+				cv::drawChessboardCorners(tmpFrame1, cv::Size(6, 4), corner1, true);
+				cv::drawChessboardCorners(tmpFrame2, cv::Size(6, 4), corner2, true);
 
 				cv::bitwise_not(tmpFrame1, tmpFrame1);
 				cv::bitwise_not(tmpFrame2, tmpFrame2);
@@ -387,10 +414,11 @@ void CMultiFLDlg::OnTimer(UINT_PTR nIDEvent)
 		{
 			KillTimer(0);	KillTimer(1);
 			MessageBox("start calibrating ...", "notice", MB_OK);
-			calibrateStereoVision(m_vCorners1, m_vCorners2, cv::Size(6, 4), 35.0f, cv::Size(CAP_WIDE, CAP_HIGH),
+			calibrateStereoVision(m_vCorners1, m_vCorners2, cv::Size(6, 4), 35.0f, cv::Size(m_imageWide, m_imageHigh),
 				m_mRemapX1, m_mRemapY1, m_mRemapX2, m_mRemapY2, m_mQ);
 
-			if(m_fsCalib.open("stereo_calib.xml", cv::FileStorage::WRITE))
+			calibfilesave << "calib_paras_" << m_imageWide << "_" << m_imageHigh << ".xml";
+			if(m_fsCalib.open(calibfilesave.str(), cv::FileStorage::WRITE))
 			{
 				m_fsCalib << "remapX1" << m_mRemapX1;
 				m_fsCalib << "remapY1" << m_mRemapY1;
@@ -449,8 +477,8 @@ void CMultiFLDlg::OnBnClickedBtnReconstruction()
 	{
 		cv::Mat frame1, frame2;
 		getProcessInput(frame1, frame2, i);
-		cv::resize(frame1, frame1, cv::Size(640, 480), 0, 0, cv::INTER_LINEAR);
-		cv::resize(frame2, frame2, cv::Size(640, 480), 0, 0, cv::INTER_LINEAR);
+		cv::resize(frame1, frame1, cv::Size(), 1.0, 1.0, cv::INTER_LINEAR);
+		cv::resize(frame2, frame2, cv::Size(), 1.0, 1.0, cv::INTER_LINEAR);
 
 		int64 start = cv::getTickCount();
 		uchar* disparity = new uchar [frame1.rows * frame1.cols];
@@ -480,6 +508,50 @@ void CMultiFLDlg::OnBnClickedBtnReconstruction()
 
 void CMultiFLDlg::OnBnClickedBtn3dSave()
 {
-	// TODO: 在此添加控件通知处理程序代码;
 	m_bSaveCur3D = true;
+}
+
+
+void CMultiFLDlg::OnCbnSelchangeComboImageSize()
+{
+	CComboBox* combox = (CComboBox*)GetDlgItem(IDC_COMBO_IMAGE_SIZE);
+	int seletedIndex = combox->GetCurSel();
+	CString selectedString;
+	combox->GetLBText(seletedIndex, selectedString);
+
+	if(selectedString == "1920 * 1080")
+	{
+		m_imageWide = 1920;	m_imageHigh = 1080;
+	}
+	if(selectedString == "1280 * 1024")
+	{
+		m_imageWide = 1280;	m_imageHigh = 1024;
+	}
+	if(selectedString == "1024 * 768")
+	{
+		m_imageWide = 1024;	m_imageHigh = 768;
+	}
+	if(selectedString == "640 * 480")
+	{
+		m_imageWide = 640;	m_imageHigh = 480;
+	}
+	if(selectedString == "320 * 240")
+	{
+		m_imageWide = 320;	m_imageHigh = 240;
+	}
+}
+
+
+void CMultiFLDlg::OnBnClickedRadioLoadCalibParas()
+{
+	if(m_bLoadCalibParas)
+	{
+		((CButton*)GetDlgItem(IDC_RADIO_LOAD_CALIB_PARAS))->SetCheck(FALSE);
+		m_bLoadCalibParas = false;
+	}
+	else
+	{
+		((CButton*)GetDlgItem(IDC_RADIO_LOAD_CALIB_PARAS))->SetCheck(TRUE);
+		m_bLoadCalibParas = true;
+	}
 }

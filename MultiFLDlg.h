@@ -1,16 +1,11 @@
-
 // MultiFLDlg.h : 头文件;
-//
-
 #pragma once
 
 #include <sstream>
 #include "CameraDS.h"
 
-#define CAP_HIGH	480
-#define CAP_WIDE	640
 
-//#define CAM_DS
+#define CAM_DS
 
 // CMultiFLDlg 对话框;
 class CMultiFLDlg : public CDialogEx
@@ -48,6 +43,9 @@ public:
 	cv::VideoCapture m_camera2;
 #endif
 
+	int m_imageWide;
+	int m_imageHigh;
+
 	CRect	m_rect1;
 	CDC*	m_pCdc1;
 	HDC		m_hDc1;
@@ -77,6 +75,8 @@ public:
 
 	cv::FileStorage m_fsCalib;
 
+	bool m_bLoadCalibParas;
+
 public:
 	void detectAndShowCircles(cv::Mat& frame1, cv::Mat& frame2);
 
@@ -88,4 +88,6 @@ public:
 	afx_msg void OnBnClickedBtnStereoCalib();
 	afx_msg void OnBnClickedBtnReconstruction();
 	afx_msg void OnBnClickedBtn3dSave();
+	afx_msg void OnCbnSelchangeComboImageSize();
+	afx_msg void OnBnClickedRadioLoadCalibParas();
 };
