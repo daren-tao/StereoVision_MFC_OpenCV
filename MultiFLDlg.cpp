@@ -221,21 +221,6 @@ void CMultiFLDlg::OnBnClickedBtnOpenCam()
 #endif
 	GetDlgItem(IDC_BTN_OPEN_CAM)->EnableWindow(FALSE);
 	GetDlgItem(IDC_BTN_STOP_VIDEO)->EnableWindow(TRUE);
-
-#if 1
-	std::stringstream calibfile;
-	calibfile << "calib_paras_" << m_imageWide << "_" << m_imageHigh << ".xml";
-	cv::FileStorage fp(calibfile.str(), cv::FileStorage::READ);
-	if(fp.isOpened())
-	{
-		fp["QMatrix"] >> m_mQ;
-		fp["remapX1"] >> m_mRemapX1;
-		fp["remapY1"] >> m_mRemapY1;
-		fp["remapX2"] >> m_mRemapX2;
-		fp["remapY2"] >> m_mRemapY2;
-	}
-#endif
-
 	SetTimer(0, 33, NULL);
 }
 
@@ -310,16 +295,13 @@ void CMultiFLDlg::OnTimer(UINT_PTR nIDEvent)
 	case 0:
 		KillTimer(0);
 
-		if(m_bStereoCalibed)
+		if(m_bStereoCalibed || m_bLoadCalibParas)
 		{
 			cv::remap(tmpFrame1, tmpFrame1, m_mRemapX1, m_mRemapY1, CV_INTER_LINEAR);
 			cv::remap(tmpFrame2, tmpFrame2, m_mRemapX2, m_mRemapY2, CV_INTER_LINEAR);
 
-		//	cv::resize(tmpFrame1, tmpFrame1, cv::Size(320, 240), 0, 0, cv::INTER_LINEAR);
-		//	cv::resize(tmpFrame2, tmpFrame2, cv::Size(320, 240), 0, 0, cv::INTER_LINEAR);
-
-			cv::resize(tmpFrame1, tmpFrame1, cv::Size(), 0.5, 0.5, cv::INTER_LINEAR);
-			cv::resize(tmpFrame2, tmpFrame2, cv::Size(), 0.5, 0.5, cv::INTER_LINEAR);
+			cv::resize(tmpFrame1, tmpFrame1, cv::Size(320, 240), 0, 0, cv::INTER_LINEAR);
+			cv::resize(tmpFrame2, tmpFrame2, cv::Size(320, 240), 0, 0, cv::INTER_LINEAR);
 
 			disparity = new uchar [tmpFrame1.rows * tmpFrame1.cols];
 			process(tmpFrame1, tmpFrame2, disparity);
@@ -553,5 +535,17 @@ void CMultiFLDlg::OnBnClickedRadioLoadCalibParas()
 	{
 		((CButton*)GetDlgItem(IDC_RADIO_LOAD_CALIB_PARAS))->SetCheck(TRUE);
 		m_bLoadCalibParas = true;
+
+		std::stringstream calibfile;
+		calibfile << "calib_paras_" << m_imageWide << "_" << m_imageHigh << ".xml";
+		cv::FileStorage fp(calibfile.str(), cv::FileStorage::READ);
+		if(fp.isOpened())
+		{
+			fp["QMatrix"] >> m_mQ;
+			fp["remapX1"] >> m_mRemapX1;
+			fp["remapY1"] >> m_mRemapY1;
+			fp["remapX2"] >> m_mRemapX2;
+			fp["remapY2"] >> m_mRemapY2;
+		}
 	}
 }
